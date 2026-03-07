@@ -538,13 +538,14 @@
 
   </form>
 
-  <!-- Success Screen -->
-  <div class="success-screen" id="successScreen">
-    <div class="success-icon">✓</div>
-    <h2>Request Submitted!</h2>
-    <p>Thank you! Your repair request has been received. Our maintenance team will be in touch within 24–48 hours.</p>
-    <button class="reset-btn" onclick="resetForm()">Submit Another Request</button>
-  </div>
+<!-- Success Screen -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✓</div>
+  <h2>Request Submitted!</h2>
+  <p>Thank you! Your repair request has been received...</p>
+  <div id="triageResult" style="text-align:left; background:#f7f4ee; border:1px solid #d4cfc4; border-radius:4px; padding:1rem; margin:1rem 0; font-size:0.85rem; white-space:pre-wrap;"></div>
+  <button class="reset-btn" onclick="resetForm()">Submit Another Request</button>
+</div>
 </main>
 
 <footer>© 2025 Andrews Properties · All rights reserved</footer>
@@ -568,23 +569,39 @@
   fields.forEach(f => f.addEventListener('change', updateProgress));
 
   // Form submit
-  document.getElementById('repairForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const required = this.querySelectorAll('[required]');
-    let valid = true;
-    required.forEach(f => {
-      if (f.type === 'checkbox' && !f.checked) valid = false;
-      else if (f.type !== 'checkbox' && f.value.trim() === '') valid = false;
-    });
-    if (!valid) {
-      alert('Please fill in all required fields before submitting.');
-      return;
-    }
-    fill.style.width = '100%';
-    this.style.display = 'none';
-    document.getElementById('successScreen').style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('repairForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const required = this.querySelectorAll('[required]');
+  let valid = true;
+  required.forEach(f => {
+    if (f.type === 'checkbox' && !f.checked) valid = false;
+    else if (f.type !== 'checkbox' && f.value.trim() === '') valid = false;
   });
+  if (!valid) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+  fill.style.width = '100%';
+
+  // Send to Flask
+  const response = await fetch('/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tenantName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
+      unit: document.getElementById('address').value,
+      issueType: document.getElementById('issueType').value,
+      urgency: document.querySelector('input[name="urgency"]:checked').value,
+      description: document.getElementById('description').value
+    })
+  });
+
+  const data = await response.json();
+  document.getElementById('repairForm').style.display = 'none';
+  document.getElementById('successScreen').style.display = 'block';
+  document.getElementById('triageResult').innerText = data.triage;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
   function resetForm() {
     document.getElementById('repairForm').reset();
