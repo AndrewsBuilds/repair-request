@@ -24,21 +24,28 @@ def submit():
     urgency = data.get("urgency")
     description = data.get("description")
 
-    prompt = f"""
+prompt = f"""
 You are a property management assistant for Andrews Properties.
 A tenant has submitted the following repair request:
+
 Tenant: {tenant_name}
 Unit: {unit}
 Issue Type: {issue_type}
 Urgency: {urgency}
 Description: {description}
 
-Please provide:
-1. Confirmed issue category
-2. Priority level: Critical / High / Standard / Low
-3. A short professional acknowledgment email to the tenant
+Write a short, warm, professional acknowledgment email BODY to the tenant.
 
-Keep the email warm but brief.
+Rules:
+- Do NOT include a subject line
+- Do NOT include headers like "1." or "2."
+- Do NOT include ** markdown formatting
+- Start directly with "Dear [tenant name],"
+- Confirm we received their request
+- mention the issue type and urgency
+- Let them know we'll follow up within 24 hours
+- Close warmly
+- Sign off as "Andrews Properties Maintenance Team"
 """
 
     message = client.messages.create(
