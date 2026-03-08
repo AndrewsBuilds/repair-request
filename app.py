@@ -4,9 +4,33 @@
 import os
 import anthropic
 from flask import Flask, request, jsonify, send_from_directory
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response):
+    sg = SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
+    from_email = os.environ.get("SENDGRID_FROM_EMAIL")
+
+    # Email to tenant
+    tenant_message = Mail(
+        from_email=from_email,
+        to_emails=tenant_email,
+        subject=f"Repair Request Received — {issue_type}",
+        plain_text_content=ai_response
+    )
+    sg.send(tenant_message)
+
+    # Email to Jason
+    owner_message = Mail(
+        from_email=from_email,
+        to_emails=os.environ.get("OWNER_EMAIL"),
+        subject=f"New Repair Request — {issue_type} ({urgency})",
+        plain_text_content=f"New repair request submitted:\n\nTenant: {tenant_name}\nIssue: {issue_type}\nUrgency: {urgency}\n\nAI Triage:\n{ai_response}"
+    )
+    sg.send(owner_message)
 
 #Serve the HTML form
 @app.route("/")
@@ -54,7 +78,10 @@ Rules:
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return jsonify({"triage": message.content[0].text})
+    triage_response = message.content[0].text
+    tenant_email = data.get("email")
+    send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response)
+    return jsonify({"triage": triage_response})
 
 if __name__ == "__main__":
         app.run(debug=True)
