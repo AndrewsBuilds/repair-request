@@ -49,6 +49,7 @@ def submit():
     issue_type = data.get("issueType")
     urgency = data.get("urgency")
     description = data.get("description")
+    tenant_email = data.get("email")
 
     prompt = f"""
 You are a property management assistant for Andrews Properties.
@@ -81,7 +82,6 @@ Rules:
     )
 
     triage_response = message.content[0].text
-    tenant_email = data.get("email")
     send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response)
     return jsonify({"triage": triage_response})
 
