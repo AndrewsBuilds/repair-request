@@ -24,7 +24,7 @@ def submit():
     urgency = data.get("urgency")
     description = data.get("description")
 
-prompt = f"""
+    prompt = f"""
 You are a property management assistant for Andrews Properties.
 A tenant has submitted the following repair request:
 
