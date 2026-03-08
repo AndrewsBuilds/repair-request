@@ -3,614 +3,647 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Repair Request — Andrews Properties</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <title>Repair Request — Formosa Nova</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --ink: #1a1a18;
-      --paper: #f7f4ee;
-      --cream: #ede9df;
-      --gold: #b8935a;
-      --gold-light: #d4ae7a;
-      --red: #c0392b;
-      --green: #2e7d52;
-      --border: #d4cfc4;
-      --shadow: rgba(26,26,24,0.10);
+      --cobalt: #050E3D;
+      --chalk: #FFFFFF;
+      --onyx: #1D1D1D;
+      --slate: #615B56;
+      --seaglass: #BFDDDB;
+      --coral: #FF557E;
+      --legacy-blue: #05C3F9;
+      --aqua: #00FBF0;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'DM Sans', sans-serif;
-      background-color: var(--paper);
-      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f6fb;
+      color: var(--onyx);
       min-height: 100vh;
-      padding: 0;
     }
 
-    /* Header */
     header {
-      background-color: var(--ink);
-      color: var(--paper);
-      padding: 2rem 2rem 1.5rem;
-      position: relative;
-      overflow: hidden;
-    }
-    header::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 40px,
-        rgba(184,147,90,0.04) 40px,
-        rgba(184,147,90,0.04) 80px
-      );
-    }
-    .header-inner {
-      max-width: 680px;
-      margin: 0 auto;
-      position: relative;
-    }
-    .brand {
-      font-family: 'DM Serif Display', serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 0.5rem;
-    }
-    header h1 {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.8rem, 5vw, 2.6rem);
-      font-weight: 400;
-      line-height: 1.15;
-      margin-bottom: 0.75rem;
-    }
-    header h1 em {
-      font-style: italic;
-      color: var(--gold-light);
-    }
-    header p {
-      font-size: 0.9rem;
-      font-weight: 300;
-      color: rgba(247,244,238,0.65);
-      max-width: 420px;
-      line-height: 1.6;
+      background-color: var(--cobalt);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(5,14,61,0.18);
     }
 
-    /* Progress bar */
-    .progress-bar {
-      background: rgba(255,255,255,0.1);
-      height: 3px;
-      margin-top: 1.5rem;
+    .logo { display: flex; align-items: center; gap: 12px; }
+
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--legacy-blue), var(--aqua));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+      color: var(--cobalt); letter-spacing: -0.5px;
     }
+
+    .logo-text { color: var(--chalk); font-size: 15px; font-weight: 600; }
+    .logo-sub { color: var(--seaglass); font-size: 11px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .header-badge {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--seaglass);
+      font-size: 11px; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px; letter-spacing: 0.4px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--cobalt) 0%, #0a1a5c 60%, #0d2278 100%);
+      padding: 3.5rem 2rem 3rem;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+
+    .hero::before {
+      content: ''; position: absolute;
+      top: -60px; right: -60px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(0,251,240,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero-accent {
+      display: inline-block;
+      width: 40px; height: 3px;
+      background: linear-gradient(90deg, var(--legacy-blue), var(--aqua));
+      border-radius: 2px; margin-bottom: 1.2rem;
+    }
+
+    .hero h1 {
+      color: var(--chalk);
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 600; letter-spacing: -0.5px; margin-bottom: 0.6rem;
+    }
+
+    .hero p {
+      color: var(--seaglass); font-size: 15px;
+      max-width: 480px; margin: 0 auto; line-height: 1.6;
+    }
+
+    .progress-wrap { background: var(--cobalt); padding: 0 2rem 1.2rem; }
+
+    .progress-track {
+      max-width: 640px; margin: 0 auto;
+      height: 3px; background: rgba(255,255,255,0.1);
+      border-radius: 2px; overflow: hidden;
+    }
+
     .progress-fill {
-      height: 100%;
-      background: var(--gold);
-      width: 0%;
-      transition: width 0.4s ease;
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--legacy-blue), var(--aqua));
+      border-radius: 2px; transition: width 0.4s ease;
     }
 
-    /* Main form */
-    main {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem 4rem;
-    }
+    .card-wrap { max-width: 640px; margin: 2.5rem auto 3rem; padding: 0 1.25rem; }
 
-    /* Section cards */
-    .section {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.75rem;
-      margin-bottom: 1.25rem;
-      box-shadow: 0 2px 8px var(--shadow);
-      animation: fadeUp 0.4s ease both;
-    }
-    .section:nth-child(1) { animation-delay: 0.05s; }
-    .section:nth-child(2) { animation-delay: 0.1s; }
-    .section:nth-child(3) { animation-delay: 0.15s; }
-    .section:nth-child(4) { animation-delay: 0.2s; }
-    .section:nth-child(5) { animation-delay: 0.25s; }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .card {
+      background: var(--chalk); border-radius: 16px; padding: 2.5rem;
+      box-shadow: 0 4px 24px rgba(5,14,61,0.08), 0 1px 4px rgba(5,14,61,0.05);
+      border: 1px solid rgba(5,14,61,0.06);
     }
 
     .section-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--legacy-blue); margin-bottom: 1.25rem;
+      padding-bottom: 0.6rem; border-bottom: 1px solid #eef0f7;
     }
 
-    /* Form fields */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-    @media (max-width: 520px) {
-      .field-row { grid-template-columns: 1fr; }
-    }
+    .form-group { margin-bottom: 1.25rem; }
 
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-      margin-bottom: 1rem;
-    }
-    .field:last-child { margin-bottom: 0; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
     label {
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: #555;
-      letter-spacing: 0.02em;
-    }
-    label .req {
-      color: var(--gold);
-      margin-left: 2px;
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--slate); margin-bottom: 6px;
+      letter-spacing: 0.2px; text-transform: uppercase;
     }
 
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"],
-    input[type="file"],
-    select,
-    textarea {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.92rem;
-      color: var(--ink);
-      background: var(--paper);
-      border: 1.5px solid var(--border);
-      border-radius: 3px;
-      padding: 0.6rem 0.75rem;
-      width: 100%;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
+    input[type="text"], input[type="email"], input[type="tel"], select, textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #dde2ee; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      color: var(--onyx); background: #fafbfe;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none; appearance: none;
     }
+
     input:focus, select:focus, textarea:focus {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px rgba(184,147,90,0.12);
-      background: white;
-    }
-    textarea {
-      resize: vertical;
-      min-height: 100px;
-      line-height: 1.6;
-    }
-    select { cursor: pointer; }
-
-    input[type="file"] {
-      padding: 0.5rem;
-      cursor: pointer;
-      font-size: 0.82rem;
+      border-color: var(--legacy-blue); background: var(--chalk);
+      box-shadow: 0 0 0 3px rgba(5,195,249,0.12);
     }
 
-    /* Urgency selector */
-    .urgency-group {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.6rem;
-    }
-    .urgency-option { display: none; }
-    .urgency-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.75rem 0.5rem;
-      border: 1.5px solid var(--border);
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: #777;
-      text-align: center;
-      transition: all 0.2s;
-      background: var(--paper);
-    }
-    .urgency-label .icon { font-size: 1.3rem; }
-    .urgency-option:checked + .urgency-label {
-      border-color: var(--gold);
-      background: white;
-      color: var(--ink);
-      box-shadow: 0 0 0 3px rgba(184,147,90,0.12);
-    }
-    #urgent:checked + .urgency-label { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); color: var(--red); }
-    #standard:checked + .urgency-label { border-color: var(--gold); }
-    #low:checked + .urgency-label { border-color: var(--green); box-shadow: 0 0 0 3px rgba(46,125,82,0.1); color: var(--green); }
+    textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 
-    /* Auth to enter */
-    .auth-box {
-      border: 1.5px solid var(--border);
-      border-radius: 3px;
-      padding: 1rem 1.25rem;
-      background: var(--paper);
-    }
-    .auth-box p {
-      font-size: 0.85rem;
-      color: #555;
-      line-height: 1.6;
-      margin-bottom: 1rem;
-    }
-    .radio-group { display: flex; flex-direction: column; gap: 0.5rem; }
-    .radio-option {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 0.88rem;
-      cursor: pointer;
-      padding: 0.4rem 0;
-    }
-    .radio-option input[type="radio"] {
-      width: 16px; height: 16px;
-      accent-color: var(--gold);
-      cursor: pointer;
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23615B56' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px; cursor: pointer;
     }
 
-    /* Checkbox */
-    .checkbox-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      padding: 1rem 1.25rem;
-      background: #fffdf7;
-      border: 1.5px solid var(--border);
-      border-radius: 3px;
-    }
-    .checkbox-row input[type="checkbox"] {
-      width: 16px; height: 16px;
-      margin-top: 2px;
-      accent-color: var(--gold);
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .checkbox-row label {
-      font-size: 0.83rem;
-      color: #555;
-      line-height: 1.6;
-      cursor: pointer;
+    .urgency-group { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem; margin-top: 2px; }
+
+    .urgency-option input[type="radio"] { display: none; }
+
+    .urgency-pill {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 10px; border: 1.5px solid #dde2ee; border-radius: 10px;
+      cursor: pointer; transition: all 0.2s; background: #fafbfe; text-align: center;
     }
 
-    /* Submit */
-    .submit-area {
-      margin-top: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    button[type="submit"] {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: white;
-      background: var(--ink);
-      border: none;
-      border-radius: 3px;
-      padding: 1rem 2rem;
-      cursor: pointer;
-      width: 100%;
-      transition: background 0.2s, transform 0.1s;
-      position: relative;
-      overflow: hidden;
-    }
-    button[type="submit"]:hover { background: #2d2d2a; }
-    button[type="submit"]:active { transform: scale(0.99); }
-    button[type="submit"]::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--gold);
+    .urgency-pill:hover { border-color: var(--legacy-blue); background: rgba(5,195,249,0.04); }
+
+    .urgency-option input:checked + .urgency-pill {
+      border-color: var(--cobalt); background: rgba(5,14,61,0.04);
+      box-shadow: 0 0 0 3px rgba(5,14,61,0.06);
     }
 
-    .form-note {
-      font-size: 0.78rem;
-      color: #999;
-      text-align: center;
-      line-height: 1.6;
+    .urgency-option input:checked + .urgency-pill .urgency-dot { background: var(--cobalt); }
+
+    .urgency-icon { font-size: 20px; }
+    .urgency-label { font-size: 12px; font-weight: 600; color: var(--onyx); }
+    .urgency-dot { width: 6px; height: 6px; border-radius: 50%; background: #dde2ee; transition: background 0.2s; }
+
+    .access-group { display: flex; flex-direction: column; gap: 8px; }
+    .access-option input[type="radio"] { display: none; }
+
+    .access-label {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border: 1.5px solid #dde2ee; border-radius: 8px;
+      cursor: pointer; font-size: 13px; color: var(--onyx);
+      transition: all 0.2s; background: #fafbfe;
     }
 
-    /* Success state */
-    .success-screen {
-      display: none;
-      text-align: center;
-      padding: 3rem 2rem;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      box-shadow: 0 2px 8px var(--shadow);
-      animation: fadeUp 0.4s ease;
+    .access-label:hover { border-color: var(--legacy-blue); background: rgba(5,195,249,0.04); }
+
+    .access-option input:checked + .access-label {
+      border-color: var(--cobalt); background: rgba(5,14,61,0.04); font-weight: 500;
     }
-    .success-icon {
-      width: 56px; height: 56px;
-      background: var(--green);
-      border-radius: 50%;
+
+    .access-radio-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid #dde2ee;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.25rem;
-      font-size: 1.5rem;
+      flex-shrink: 0; transition: all 0.2s;
     }
-    .success-screen h2 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.6rem;
-      font-weight: 400;
-      margin-bottom: 0.5rem;
-    }
-    .success-screen p {
-      font-size: 0.9rem;
-      color: #666;
-      line-height: 1.6;
-      max-width: 380px;
-      margin: 0 auto 1.5rem;
-    }
-    .reset-btn {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.82rem;
-      color: var(--gold);
-      background: none;
-      border: 1px solid var(--gold);
-      border-radius: 3px;
-      padding: 0.5rem 1.25rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .reset-btn:hover { background: var(--gold); color: white; }
 
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 1.5rem;
-      font-size: 0.75rem;
-      color: #bbb;
-      border-top: 1px solid var(--border);
+    .access-option input:checked + .access-label .access-radio-dot {
+      border-color: var(--cobalt); background: var(--cobalt);
+      box-shadow: inset 0 0 0 3px var(--chalk);
+    }
+
+    .upload-area {
+      border: 1.5px dashed #c8cedf; border-radius: 10px;
+      padding: 1.5rem; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: #fafbfe;
+    }
+
+    .upload-area:hover { border-color: var(--legacy-blue); background: rgba(5,195,249,0.03); }
+    .upload-icon { font-size: 24px; margin-bottom: 6px; }
+    .upload-text { font-size: 13px; color: var(--slate); }
+    .upload-text strong { color: var(--legacy-blue); }
+    #photoInput { display: none; }
+
+    .checkbox-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 14px; background: rgba(5,14,61,0.03);
+      border-radius: 8px; border: 1px solid rgba(5,14,61,0.07);
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 17px; height: 17px; accent-color: var(--cobalt);
+      flex-shrink: 0; margin-top: 1px; cursor: pointer;
+    }
+
+    .checkbox-row span { font-size: 13px; color: var(--slate); line-height: 1.5; }
+
+    .section-divider { height: 1px; background: #eef0f7; margin: 2rem 0; }
+
+    .btn-submit {
+      width: 100%; padding: 15px;
+      background: var(--cobalt); color: var(--chalk);
+      border: none; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+      letter-spacing: 0.3px; cursor: pointer;
+      transition: all 0.2s; margin-top: 0.5rem;
+    }
+
+    .btn-submit:hover {
+      background: #0a1a5c;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(5,14,61,0.25);
+    }
+
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-inner { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    .spinner {
+      display: none; width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #successScreen { display: none; text-align: center; padding: 1rem 0; }
+
+    .success-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--legacy-blue), var(--aqua));
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem; font-size: 32px;
+      box-shadow: 0 8px 24px rgba(5,195,249,0.3);
+    }
+
+    .success-title { font-size: 1.5rem; font-weight: 700; color: var(--cobalt); margin-bottom: 0.5rem; }
+
+    .success-sub { font-size: 14px; color: var(--slate); line-height: 1.6; margin-bottom: 1.5rem; }
+
+    #triageResult {
+      background: #f4f6fb; border: 1px solid #dde2ee; border-radius: 10px;
+      padding: 1.25rem 1.5rem; font-size: 14px; line-height: 1.7;
+      color: var(--onyx); text-align: left; white-space: pre-wrap; margin-bottom: 1.5rem;
+    }
+
+    .btn-new {
+      display: inline-block; padding: 11px 28px;
+      border: 2px solid var(--cobalt); border-radius: 8px;
+      color: var(--cobalt); font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      background: transparent; transition: all 0.2s;
+    }
+
+    .btn-new:hover { background: var(--cobalt); color: var(--chalk); }
+
+    .input-error { border-color: var(--coral) !important; box-shadow: 0 0 0 3px rgba(255,85,126,0.12) !important; }
+    .input-hint { font-size: 11px; color: var(--slate); margin-top: 4px; }
+    .input-hint.error { color: var(--coral); }
+
+    .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .photo-thumb {
+      width: 64px; height: 64px; border-radius: 6px;
+      object-fit: cover; border: 1.5px solid #dde2ee;
+    }
+    .photo-count { font-size: 12px; color: var(--slate); margin-top: 6px; }
+
+    footer { text-align: center; padding: 1.5rem; font-size: 12px; color: #a0a8bf; }
+    footer span { color: var(--coral); }
+
+    @media (max-width: 540px) {
+      .form-row { grid-template-columns: 1fr; }
+      .urgency-group { grid-template-columns: 1fr; }
+      .card { padding: 1.75rem 1.25rem; }
+      .hero { padding: 2.5rem 1.25rem 2rem; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <div class="brand">Andrews Properties</div>
-    <h1>Submit a <em>Repair</em><br>Request</h1>
-    <p>Fill out the form below and our maintenance team will follow up within 24–48 hours.</p>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <header>
+    <div class="logo">
+      <div class="logo-mark">FN</div>
+      <div>
+        <div class="logo-text">Formosa Nova</div>
+        <div class="logo-sub">Maintenance Portal</div>
+      </div>
+    </div>
+    <div class="header-badge">Resident Services</div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-accent"></div>
+    <h1>Submit a Repair Request</h1>
+    <p>We're here to help. Fill out the form below and our team will follow up within 24 hours.</p>
   </div>
-</header>
 
-<main>
-  <form id="repairForm" novalidate>
-
-    <!-- Section 1: Tenant Info -->
-    <div class="section">
-      <div class="section-label">Tenant Information</div>
-      <div class="field-row">
-        <div class="field">
-          <label for="firstName">First Name <span class="req">*</span></label>
-          <input type="text" id="firstName" placeholder="Jane" required />
-        </div>
-        <div class="field">
-          <label for="lastName">Last Name <span class="req">*</span></label>
-          <input type="text" id="lastName" placeholder="Smith" required />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="email">Email Address <span class="req">*</span></label>
-          <input type="email" id="email" placeholder="jane@email.com" required />
-        </div>
-        <div class="field">
-          <label for="phone">Phone Number</label>
-          <input type="tel" id="phone" placeholder="(555) 000-0000" />
-        </div>
-      </div>
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressBar"></div>
     </div>
+  </div>
 
-    <!-- Section 2: Property -->
-    <div class="section">
-      <div class="section-label">Property Details</div>
-      <div class="field">
-        <label for="address">Property Address <span class="req">*</span></label>
-        <input type="text" id="address" placeholder="123 Main St, Unit 4B" required />
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="city">City</label>
-          <input type="text" id="city" placeholder="Dallas" />
-        </div>
-        <div class="field">
-          <label for="unit">Unit / Apt #</label>
-          <input type="text" id="unit" placeholder="Unit 4B" />
-        </div>
-      </div>
-    </div>
+  <div class="card-wrap">
+    <div class="card">
 
-    <!-- Section 3: Issue -->
-    <div class="section">
-      <div class="section-label">Issue Details</div>
-      <div class="field">
-        <label for="issueType">Type of Issue <span class="req">*</span></label>
-        <select id="issueType" required>
-          <option value="" disabled selected>Select a category...</option>
-          <option>Plumbing</option>
-          <option>Electrical</option>
-          <option>HVAC / Heating & Cooling</option>
-          <option>Appliance</option>
-          <option>Structural / Walls / Floors</option>
-          <option>Pest / Rodent</option>
-          <option>Locks / Security</option>
-          <option>Other</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="description">Describe the Problem <span class="req">*</span></label>
-        <textarea id="description" placeholder="Please describe the issue in as much detail as possible — when it started, how often it occurs, and any relevant context..." required></textarea>
-      </div>
-      <div class="field">
-        <label>Urgency Level <span class="req">*</span></label>
-        <div class="urgency-group">
-          <div>
-            <input type="radio" name="urgency" id="urgent" value="urgent" class="urgency-option" />
-            <label class="urgency-label" for="urgent">
-              <span class="icon">🚨</span>
-              Urgent
-            </label>
+      <div id="formSection">
+        <div class="section-label">Your Information</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" placeholder="Jane" />
           </div>
-          <div>
-            <input type="radio" name="urgency" id="standard" value="standard" class="urgency-option" checked />
-            <label class="urgency-label" for="standard">
-              <span class="icon">🔧</span>
-              Standard
-            </label>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" placeholder="Smith" />
           </div>
-          <div>
-            <input type="radio" name="urgency" id="low" value="low" class="urgency-option" />
-            <label class="urgency-label" for="low">
-              <span class="icon">📋</span>
-              Low Priority
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="jane@email.com" />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" placeholder="(555) 000-0000" />
+            <div class="input-hint" id="phoneHint"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="address">Property Address / Unit</label>
+          <input type="text" id="address" placeholder="123 Main St, Unit 4B" />
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="section-label">Issue Details</div>
+
+        <div class="form-group">
+          <label for="issueType">Issue Type</label>
+          <select id="issueType">
+            <option value="" disabled selected>Select a category...</option>
+            <option value="Plumbing">🔧 Plumbing</option>
+            <option value="Electrical">⚡ Electrical</option>
+            <option value="HVAC">❄️ Heating / Cooling</option>
+            <option value="Appliance">🏠 Appliance</option>
+            <option value="Structural">🏗️ Structural / Doors / Windows</option>
+            <option value="Pest">🐛 Pest Control</option>
+            <option value="Other">📋 Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Urgency Level</label>
+          <div class="urgency-group">
+            <label class="urgency-option">
+              <input type="radio" name="urgency" value="Urgent" />
+              <div class="urgency-pill">
+                <div class="urgency-icon">🚨</div>
+                <div class="urgency-label">Urgent</div>
+                <div class="urgency-dot"></div>
+              </div>
+            </label>
+            <label class="urgency-option">
+              <input type="radio" name="urgency" value="Standard" checked />
+              <div class="urgency-pill">
+                <div class="urgency-icon">🔧</div>
+                <div class="urgency-label">Standard</div>
+                <div class="urgency-dot"></div>
+              </div>
+            </label>
+            <label class="urgency-option">
+              <input type="radio" name="urgency" value="Low" />
+              <div class="urgency-pill">
+                <div class="urgency-icon">📋</div>
+                <div class="urgency-label">Low</div>
+                <div class="urgency-dot"></div>
+              </div>
             </label>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Section 4: Photo Upload -->
-    <div class="section">
-      <div class="section-label">Photo Upload</div>
-      <div class="field">
-        <label for="photos">Attach Photos (optional)</label>
-        <input type="file" id="photos" accept="image/*" multiple />
-      </div>
-      <p style="font-size:0.78rem;color:#999;margin-top:0.25rem;">You can select multiple photos. Accepted formats: JPG, PNG, HEIC.</p>
-    </div>
-
-    <!-- Section 5: Authorization -->
-    <div class="section">
-      <div class="section-label">Authorization to Enter</div>
-      <div class="auth-box">
-        <p>Do you authorize Andrews Properties maintenance staff to enter your unit to assess or repair the reported issue, if you are not present?</p>
-        <div class="radio-group">
-          <label class="radio-option">
-            <input type="radio" name="authEntry" value="yes" checked />
-            Yes — you may enter my unit during normal business hours (8am–6pm)
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="authEntry" value="schedule" />
-            Please schedule a time with me first
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="authEntry" value="no" />
-            No — I need to be present
-          </label>
+        <div class="form-group">
+          <label for="description">Describe the Issue</label>
+          <textarea id="description" placeholder="Please describe what's happening, when it started, and any other details that might help our team..."></textarea>
         </div>
+
+        <div class="form-group">
+          <label>Photos (Optional)</label>
+          <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text"><strong>Click to upload photos</strong> or drag and drop</div>
+            <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotoSelect(this)" />
+          </div>
+          <div class="photo-preview" id="photoPreview"></div>
+          <div class="photo-count" id="photoCount"></div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="section-label">Entry Authorization</div>
+
+        <div class="form-group">
+          <div class="access-group">
+            <label class="access-option">
+              <input type="radio" name="access" value="yes_alone" checked />
+              <div class="access-label">
+                <div class="access-radio-dot"></div>
+                You may enter when I'm not home
+              </div>
+            </label>
+            <label class="access-option">
+              <input type="radio" name="access" value="yes_present" />
+              <div class="access-label">
+                <div class="access-radio-dot"></div>
+                Please schedule when I'm present
+              </div>
+            </label>
+            <label class="access-option">
+              <input type="radio" name="access" value="emergency_only" />
+              <div class="access-label">
+                <div class="access-radio-dot"></div>
+                Entry for emergencies only
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="confirm" />
+            <span>I confirm the information above is accurate and I authorize Formosa Nova to address this maintenance request.</span>
+          </div>
+        </div>
+
+        <button class="btn-submit" id="submitBtn" onclick="handleSubmit()">
+          <div class="btn-inner">
+            <div class="spinner" id="spinner"></div>
+            <span id="btnText">Submit Repair Request</span>
+          </div>
+        </button>
       </div>
+
+      <div id="successScreen">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Request Submitted!</div>
+        <div class="success-sub">Your repair request has been received. Check your email for a confirmation — our team will be in touch within 24 hours.</div>
+        <div id="triageResult"></div>
+        <button class="btn-new" onclick="resetForm()">Submit Another Request</button>
+      </div>
+
     </div>
+  </div>
 
-    <!-- Confirmation checkbox -->
-    <div class="checkbox-row">
-      <input type="checkbox" id="confirm" required />
-      <label for="confirm">I confirm that the information provided above is accurate to the best of my knowledge, and I understand that Andrews Properties will contact me within 24–48 hours to follow up on this request.</label>
-    </div>
+  <footer>
+    © 2026 Formosa Nova &nbsp;·&nbsp; Built with <span>♥</span> for our residents
+  </footer>
 
-    <!-- Submit -->
-    <div class="submit-area">
-      <button type="submit">Submit Repair Request</button>
-      <p class="form-note">Your request will be logged and assigned to our maintenance team. For emergencies involving gas leaks or flooding, call us directly.</p>
-    </div>
-
-  </form>
-
-<!-- Success Screen -->
-<div class="success-screen" id="successScreen">
-  <div class="success-icon">✓</div>
-  <h2>Request Submitted!</h2>
-  <p>Thank you! Your repair request has been received...</p>
-  <div id="triageResult" style="text-align:left; background:#f7f4ee; border:1px solid #d4cfc4; border-radius:4px; padding:1rem; margin:1rem 0; font-size:0.85rem; white-space:pre-wrap;"></div>
-  <button class="reset-btn" onclick="resetForm()">Submit Another Request</button>
-</div>
-</main>
-
-<footer>© 2025 Andrews Properties · All rights reserved</footer>
-
-<script>
-  // Progress bar
-  const fields = document.querySelectorAll('input, select, textarea');
-  const fill = document.getElementById('progressFill');
-
-  function updateProgress() {
-    const required = document.querySelectorAll('[required]');
-    let filled = 0;
-    required.forEach(f => {
-      if (f.type === 'checkbox') { if (f.checked) filled++; }
-      else if (f.value.trim() !== '') filled++;
+  <script>
+    // ── Progress bar ──
+    const trackFields = ['firstName','lastName','email','address','issueType','description'];
+    trackFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateProgress);
     });
-    fill.style.width = (filled / required.length * 100) + '%';
-  }
+    document.querySelectorAll('input[name="urgency"]').forEach(r => r.addEventListener('change', updateProgress));
 
-  fields.forEach(f => f.addEventListener('input', updateProgress));
-  fields.forEach(f => f.addEventListener('change', updateProgress));
+    function updateProgress() {
+      let filled = 0;
+      if (document.getElementById('firstName').value.trim()) filled++;
+      if (document.getElementById('lastName').value.trim()) filled++;
+      if (document.getElementById('email').value.trim()) filled++;
+      if (document.getElementById('address').value.trim()) filled++;
+      if (document.getElementById('issueType').value) filled++;
+      if (document.getElementById('description').value.trim()) filled++;
+      if (document.querySelector('input[name="urgency"]:checked')) filled++;
+      document.getElementById('progressBar').style.width = Math.round((filled / 7) * 100) + '%';
+    }
 
-  // Form submit
-  document.getElementById('repairForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const required = this.querySelectorAll('[required]');
-  let valid = true;
-  required.forEach(f => {
-    if (f.type === 'checkbox' && !f.checked) valid = false;
-    else if (f.type !== 'checkbox' && f.value.trim() === '') valid = false;
-  });
-  if (!valid) {
-    alert('Please fill in all required fields.');
-    return;
-  }
-  fill.style.width = '100%';
+    // ── Phone formatting ──
+    const phoneInput = document.getElementById('phone');
+    phoneInput.addEventListener('input', function(e) {
+      let digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+      let formatted = '';
+      if (digits.length === 0) { formatted = ''; }
+      else if (digits.length <= 3) { formatted = '(' + digits; }
+      else if (digits.length <= 6) { formatted = '(' + digits.slice(0,3) + ') ' + digits.slice(3); }
+      else { formatted = '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6); }
+      e.target.value = formatted;
 
-  // Send to Flask
-  const response = await fetch('/submit', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tenantName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
-      unit: document.getElementById('address').value,
-      issueType: document.getElementById('issueType').value,
-      urgency: document.querySelector('input[name="urgency"]:checked').value,
-      description: document.getElementById('description').value,
-      email: document.getElementById('email').value
-    })
-  });
+      const hint = document.getElementById('phoneHint');
+      if (digits.length > 0 && digits.length < 10) {
+        hint.textContent = 'Please enter a 10-digit phone number';
+        hint.className = 'input-hint error';
+        phoneInput.classList.add('input-error');
+      } else {
+        hint.textContent = digits.length === 10 ? '✓ Looks good' : '';
+        hint.className = 'input-hint';
+        phoneInput.classList.remove('input-error');
+      }
+    });
 
-  const data = await response.json();
-  document.getElementById('repairForm').style.display = 'none';
-  document.getElementById('successScreen').style.display = 'block';
-  document.getElementById('triageResult').innerText = data.triage;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+    // ── Photo preview ──
+    function handlePhotoSelect(input) {
+      const preview = document.getElementById('photoPreview');
+      const count = document.getElementById('photoCount');
+      preview.innerHTML = '';
+      const files = Array.from(input.files);
+      files.slice(0, 5).forEach(file => {
+        const img = document.createElement('img');
+        img.className = 'photo-thumb';
+        img.src = URL.createObjectURL(file);
+        preview.appendChild(img);
+      });
+      if (files.length > 0) {
+        count.textContent = files.length + ' photo' + (files.length > 1 ? 's' : '') + ' selected' + (files.length > 5 ? ' (showing first 5)' : '');
+      }
+    }
 
-  function resetForm() {
-    document.getElementById('repairForm').reset();
-    document.getElementById('repairForm').style.display = 'block';
-    document.getElementById('successScreen').style.display = 'none';
-    fill.style.width = '0%';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-</script>
+    // ── Convert files to base64 ──
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          filename: file.name,
+          type: file.type,
+          data: reader.result.split(',')[1]
+        });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── Submit ──
+    async function handleSubmit() {
+      const firstName   = document.getElementById('firstName').value.trim();
+      const lastName    = document.getElementById('lastName').value.trim();
+      const email       = document.getElementById('email').value.trim();
+      const phone       = document.getElementById('phone').value.trim();
+      const address     = document.getElementById('address').value.trim();
+      const issueType   = document.getElementById('issueType').value;
+      const urgency     = document.querySelector('input[name="urgency"]:checked')?.value;
+      const description = document.getElementById('description').value.trim();
+      const confirmed   = document.getElementById('confirm').checked;
+
+      if (!firstName || !lastName || !email || !address || !issueType || !description) {
+        alert('Please fill in all required fields.'); return;
+      }
+      const phoneDigits = phone.replace(/\D/g,'');
+      if (phone && phoneDigits.length !== 10) {
+        alert('Please enter a valid 10-digit phone number.'); return;
+      }
+      if (!confirmed) {
+        alert('Please confirm your information before submitting.'); return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Submitting...';
+
+      // Convert photos to base64
+      const photoInput = document.getElementById('photoInput');
+      let photos = [];
+      if (photoInput.files.length > 0) {
+        photos = await Promise.all(Array.from(photoInput.files).map(fileToBase64));
+      }
+
+      try {
+        const res = await fetch('/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantName: firstName + ' ' + lastName,
+            unit: address, issueType, urgency, description, email, phone, photos
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('triageResult').textContent = data.triage;
+        document.getElementById('formSection').style.display = 'none';
+        document.getElementById('successScreen').style.display = 'block';
+
+      } catch (err) {
+        alert('Something went wrong. Please try again.');
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Submit Repair Request';
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('formSection').style.display = 'block';
+      document.getElementById('successScreen').style.display = 'none';
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btnText').textContent = 'Submit Repair Request';
+      document.getElementById('photoPreview').innerHTML = '';
+      document.getElementById('photoCount').textContent = '';
+    }
+  </script>
 </body>
 </html>

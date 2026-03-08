@@ -1,20 +1,20 @@
-# Andrews Properties - Repair Request Web App
-# Week 3 - Flask + AI Triage
-
+# Formosa Nova - Repair Request Web App
 import os
+import base64
 import anthropic
 from flask import Flask, request, jsonify, send_from_directory
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response):
+def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, photos=None):
     sg = SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
     from_email = os.environ.get("SENDGRID_FROM_EMAIL")
 
     try:
+        # ── Email to tenant ──
         tenant_message = Mail(
             from_email=from_email,
             to_emails=tenant_email,
@@ -23,18 +23,40 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response):
         )
         sg.send(tenant_message)
 
+        # ── Email to owner (with photo attachments if provided) ──
+        owner_body = (
+            f"New repair request submitted:\n\n"
+            f"Tenant: {tenant_name}\n"
+            f"Issue: {issue_type}\n"
+            f"Urgency: {urgency}\n"
+            f"Photos attached: {len(photos) if photos else 0}\n\n"
+            f"AI Triage:\n{ai_response}"
+        )
+
         owner_message = Mail(
             from_email=from_email,
             to_emails=os.environ.get("OWNER_EMAIL"),
             subject=f"New Repair Request — {issue_type} ({urgency})",
-            plain_text_content=f"New repair request submitted:\n\nTenant: {tenant_name}\nIssue: {issue_type}\nUrgency: {urgency}\n\nAI Triage:\n{ai_response}"
+            plain_text_content=owner_body
         )
+
+        # Attach photos to owner email
+        if photos:
+            for i, photo in enumerate(photos):
+                attachment = Attachment(
+                    FileContent(photo['data']),
+                    FileName(photo['filename'] or f"photo_{i+1}.jpg"),
+                    FileType(photo['type'] or 'image/jpeg'),
+                    Disposition('attachment')
+                )
+                owner_message.add_attachment(attachment)
+
         sg.send(owner_message)
 
     except Exception as e:
         print(f"SendGrid error: {e.body}")
 
-#Serve the HTML form
+# Serve the HTML form
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
@@ -44,35 +66,24 @@ def index():
 def submit():
     data = request.json
 
-    tenant_name = data.get("tenantName")
-    unit = data.get("unit")
-    issue_type = data.get("issueType")
-    urgency = data.get("urgency")
-    description = data.get("description")
+    tenant_name  = data.get("tenantName")
+    unit         = data.get("unit")
+    issue_type   = data.get("issueType")
+    urgency      = data.get("urgency")
+    description  = data.get("description")
     tenant_email = data.get("email")
+    phone        = data.get("phone", "Not provided")
+    photos       = data.get("photos", [])
 
     prompt = f"""
-You are a property management assistant for Andrews Properties.
+You are a property management assistant for Formosa Nova.
 A tenant has submitted the following repair request:
-
-Tenant: {tenant_name}
-Unit: {unit}
-Issue Type: {issue_type}
-Urgency: {urgency}
-Description: {description}
+Tenant: {tenant_name} / Unit: {unit} / Issue Type: {issue_type} / Urgency: {urgency} / Description: {description}
 
 Write a short, warm, professional acknowledgment email BODY to the tenant.
-
-Rules:
-- Do NOT include a subject line
-- Do NOT include headers like "1." or "2."
-- Do NOT include ** markdown formatting
-- Start directly with "Dear [tenant name],"
-- Confirm we received their request
-- mention the issue type and urgency
-- Let them know we'll follow up within 24 hours
-- Close warmly
-- Sign off as "Andrews Properties Maintenance Team"
+Rules: No subject line, no headers like "1." or "2.", no ** markdown, start with "Dear [name],",
+confirm receipt, mention issue type and urgency, follow up within 24 hours, close warmly,
+sign off as "Formosa Nova Maintenance Team"
 """
 
     message = client.messages.create(
@@ -82,11 +93,12 @@ Rules:
     )
 
     triage_response = message.content[0].text
-    send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response)
+    send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
     return jsonify({"triage": triage_response})
 
 if __name__ == "__main__":
-        app.run(debug=True)
+    app.run(debug=True)
+
 
 
 
