@@ -14,23 +14,25 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response):
     sg = SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
     from_email = os.environ.get("SENDGRID_FROM_EMAIL")
 
-    # Email to tenant
-    tenant_message = Mail(
-        from_email=from_email,
-        to_emails=tenant_email,
-        subject=f"Repair Request Received — {issue_type}",
-        plain_text_content=ai_response
-    )
-    sg.send(tenant_message)
+    try:
+        tenant_message = Mail(
+            from_email=from_email,
+            to_emails=tenant_email,
+            subject=f"Repair Request Received — {issue_type}",
+            plain_text_content=ai_response
+        )
+        sg.send(tenant_message)
 
-    # Email to Jason
-    owner_message = Mail(
-        from_email=from_email,
-        to_emails=os.environ.get("OWNER_EMAIL"),
-        subject=f"New Repair Request — {issue_type} ({urgency})",
-        plain_text_content=f"New repair request submitted:\n\nTenant: {tenant_name}\nIssue: {issue_type}\nUrgency: {urgency}\n\nAI Triage:\n{ai_response}"
-    )
-    sg.send(owner_message)
+        owner_message = Mail(
+            from_email=from_email,
+            to_emails=os.environ.get("OWNER_EMAIL"),
+            subject=f"New Repair Request — {issue_type} ({urgency})",
+            plain_text_content=f"New repair request submitted:\n\nTenant: {tenant_name}\nIssue: {issue_type}\nUrgency: {urgency}\n\nAI Triage:\n{ai_response}"
+        )
+        sg.send(owner_message)
+
+    except Exception as e:
+        print(f"SendGrid error: {e.body}")
 
 #Serve the HTML form
 @app.route("/")
