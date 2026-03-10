@@ -2,12 +2,68 @@
 import os
 import base64
 import anthropic
+import requests
 from flask import Flask, request, jsonify, send_from_directory
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+def send_teams_notification(tenant_name, unit, issue_type, urgency, description):
+    """Post a repair request notification to the Teams repair-requests channel."""
+    webhook_url = os.environ.get("TEAMS_WEBHOOK_URL")
+    if not webhook_url:
+        print("Teams webhook URL not configured — skipping notification")
+        return
+
+    # Urgency emoji indicator
+    urgency_emoji = {
+        "Emergency": "🚨",
+        "Urgent": "🔴",
+        "Routine": "🟡",
+        "Low": "🟢"
+    }.get(urgency, "🔧")
+
+    message = {
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.2",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"{urgency_emoji} New Repair Request — {issue_type}",
+                            "weight": "Bolder",
+                            "size": "Medium"
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": [
+                                {"title": "Tenant", "value": tenant_name},
+                                {"title": "Unit", "value": unit},
+                                {"title": "Issue Type", "value": issue_type},
+                                {"title": "Urgency", "value": urgency},
+                                {"title": "Description", "value": description}
+                            ]
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(webhook_url, json=message)
+        if response.status_code != 202:
+            print(f"Teams notification failed: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"Teams notification error: {e}")
+
 
 def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, photos=None):
     sg = SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
@@ -56,10 +112,12 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
     except Exception as e:
         print(f"SendGrid error: {e.body}")
 
+
 # Serve the HTML form
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
+
 
 # Handle form submission
 @app.route("/submit", methods=["POST"])
@@ -93,12 +151,16 @@ sign off as "Formosa Nova Maintenance Team"
     )
 
     triage_response = message.content[0].text
+
+    # Send emails and Teams notification
     send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
+    send_teams_notification(tenant_name, unit, issue_type, urgency, description)
+
     return jsonify({"triage": triage_response})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
 
 
 
