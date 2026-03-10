@@ -3,12 +3,92 @@ import os
 import base64
 import anthropic
 import requests
+from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_from_directory
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+# ── Microsoft Graph / SharePoint config ────────────────────────────────────
+TENANT_ID     = os.environ.get("AZURE_TENANT_ID")
+CLIENT_ID     = os.environ.get("AZURE_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
+
+
+def get_graph_token():
+    """Get an access token from Azure AD for Microsoft Graph API."""
+    url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "scope": "https://graph.microsoft.com/.default"
+    }
+    response = requests.post(url, data=data)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+
+def get_sharepoint_site_id(token):
+    """Get the SharePoint site ID needed for Graph API calls."""
+    url = "https://graph.microsoft.com/v1.0/sites/netorgft13553269.sharepoint.com:/sites/RentalPropertiesHub"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()["id"]
+
+
+def get_list_id(token, site_id):
+    """Get the ID of the Repair Requests SharePoint list."""
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    lists = response.json().get("value", [])
+    for lst in lists:
+        if lst["name"] == "Repair Requests":
+            return lst["id"]
+    raise Exception("Repair Requests list not found in SharePoint site")
+
+
+def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, email, phone):
+    """Save a repair request as a new item in the SharePoint Repair Requests list."""
+    try:
+        token = get_graph_token()
+        site_id = get_sharepoint_site_id(token)
+        list_id = get_list_id(token, site_id)
+
+        url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "fields": {
+                "Title": tenant_name,
+                "Unit": unit,
+                "Issue_x0020_Type": issue_type,
+                "Urgency": urgency,
+                "Description": description,
+                "Email": email,
+                "Phone": phone,
+                "Submission_x0020_Date": datetime.now(timezone.utc).isoformat(),
+                "Status": "New"
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code not in (200, 201):
+            print(f"SharePoint save failed: {response.status_code} {response.text}")
+        else:
+            print("SharePoint record created successfully")
+
+    except Exception as e:
+        print(f"SharePoint error: {e}")
+
 
 def send_teams_notification(tenant_name, unit, issue_type, urgency, description):
     """Post a repair request notification to the Teams repair-requests channel."""
@@ -17,7 +97,6 @@ def send_teams_notification(tenant_name, unit, issue_type, urgency, description)
         print("Teams webhook URL not configured — skipping notification")
         return
 
-    # Urgency emoji indicator
     urgency_emoji = {
         "Emergency": "🚨",
         "Urgent": "🔴",
@@ -96,7 +175,6 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
             plain_text_content=owner_body
         )
 
-        # Attach photos to owner email
         if photos:
             for i, photo in enumerate(photos):
                 attachment = Attachment(
@@ -152,9 +230,10 @@ sign off as "Formosa Nova Maintenance Team"
 
     triage_response = message.content[0].text
 
-    # Send emails and Teams notification
+    # Send emails, Teams notification, and save to SharePoint
     send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
     send_teams_notification(tenant_name, unit, issue_type, urgency, description)
+    save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, tenant_email, phone)
 
     return jsonify({"triage": triage_response})
 
