@@ -190,7 +190,8 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
             "message": {
                 "subject": f"Repair Request Received — {issue_type}",
                 "body": {"contentType": "Text", "content": ai_response},
-                "toRecipients": [{"emailAddress": {"address": tenant_email}}]
+                "toRecipients": [{"emailAddress": {"address": tenant_email}}],
+                "replyTo": [{"emailAddress": {"address": sender}}]
             },
             "saveToSentItems": "true"
         }
@@ -212,7 +213,8 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
         owner_message = {
             "subject": f"New Repair Request — {issue_type} ({urgency})",
             "body": {"contentType": "Text", "content": owner_body},
-            "toRecipients": [{"emailAddress": {"address": owner_email}}]
+            "toRecipients": [{"emailAddress": {"address": owner_email}}],
+            "replyTo": [{"emailAddress": {"address": sender}}]
         }
 
         # Attach photos if provided
