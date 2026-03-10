@@ -1,5 +1,6 @@
 # Formosa Nova - Repair Request Web App
 import os
+import sys
 import base64
 import anthropic
 import requests
@@ -11,14 +12,13 @@ from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileT
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-# ── Microsoft Graph / SharePoint config ────────────────────────────────────
 TENANT_ID     = os.environ.get("AZURE_TENANT_ID")
 CLIENT_ID     = os.environ.get("AZURE_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
 
 
 def get_graph_token():
-    """Get an access token from Azure AD for Microsoft Graph API."""
+    print(f"[SharePoint] Getting token for tenant: {TENANT_ID}", flush=True)
     url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
     data = {
         "grant_type": "client_credentials",
@@ -27,34 +27,46 @@ def get_graph_token():
         "scope": "https://graph.microsoft.com/.default"
     }
     response = requests.post(url, data=data)
+    print(f"[SharePoint] Token response status: {response.status_code}", flush=True)
+    if response.status_code != 200:
+        print(f"[SharePoint] Token error: {response.text}", flush=True)
     response.raise_for_status()
     return response.json()["access_token"]
 
 
 def get_sharepoint_site_id(token):
-    """Get the SharePoint site ID needed for Graph API calls."""
     url = "https://graph.microsoft.com/v1.0/sites/netorgft13553269.sharepoint.com:/sites/RentalPropertiesHub"
     headers = {"Authorization": f"Bearer {token}"}
+    print(f"[SharePoint] Getting site ID", flush=True)
     response = requests.get(url, headers=headers)
+    print(f"[SharePoint] Site ID response: {response.status_code}", flush=True)
+    if response.status_code != 200:
+        print(f"[SharePoint] Site ID error: {response.text}", flush=True)
     response.raise_for_status()
     return response.json()["id"]
 
 
 def get_list_id(token, site_id):
-    """Get the ID of the Repair Requests SharePoint list."""
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists"
     headers = {"Authorization": f"Bearer {token}"}
+    print(f"[SharePoint] Getting lists", flush=True)
     response = requests.get(url, headers=headers)
+    print(f"[SharePoint] Lists response: {response.status_code}", flush=True)
+    if response.status_code != 200:
+        print(f"[SharePoint] Lists error: {response.text}", flush=True)
     response.raise_for_status()
     lists = response.json().get("value", [])
+    list_names = [lst["name"] for lst in lists]
+    print(f"[SharePoint] Available lists: {list_names}", flush=True)
     for lst in lists:
         if lst["name"] == "Repair Requests":
+            print(f"[SharePoint] Found list: {lst['id']}", flush=True)
             return lst["id"]
-    raise Exception("Repair Requests list not found in SharePoint site")
+    raise Exception(f"List not found. Available: {list_names}")
 
 
 def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, email, phone):
-    """Save a repair request as a new item in the SharePoint Repair Requests list."""
+    print("[SharePoint] Starting save_to_sharepoint", flush=True)
     try:
         token = get_graph_token()
         site_id = get_sharepoint_site_id(token)
@@ -65,7 +77,6 @@ def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, emai
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-
         payload = {
             "fields": {
                 "Title": tenant_name,
@@ -80,18 +91,19 @@ def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, emai
             }
         }
 
+        print(f"[SharePoint] Posting item", flush=True)
         response = requests.post(url, headers=headers, json=payload)
+        print(f"[SharePoint] Post response: {response.status_code}", flush=True)
         if response.status_code not in (200, 201):
-            print(f"SharePoint save failed: {response.status_code} {response.text}")
+            print(f"[SharePoint] Post error: {response.text}", flush=True)
         else:
-            print("SharePoint record created successfully")
+            print("[SharePoint] Record created successfully!", flush=True)
 
     except Exception as e:
-        print(f"SharePoint error: {e}")
+        print(f"[SharePoint] Exception: {str(e)}", flush=True)
 
 
 def send_teams_notification(tenant_name, unit, issue_type, urgency, description):
-    """Post a repair request notification to the Teams repair-requests channel."""
     webhook_url = os.environ.get("TEAMS_WEBHOOK_URL")
     if not webhook_url:
         print("Teams webhook URL not configured — skipping notification")
@@ -149,7 +161,6 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
     from_email = os.environ.get("SENDGRID_FROM_EMAIL")
 
     try:
-        # ── Email to tenant ──
         tenant_message = Mail(
             from_email=from_email,
             to_emails=tenant_email,
@@ -158,7 +169,6 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
         )
         sg.send(tenant_message)
 
-        # ── Email to owner (with photo attachments if provided) ──
         owner_body = (
             f"New repair request submitted:\n\n"
             f"Tenant: {tenant_name}\n"
@@ -167,7 +177,6 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
             f"Photos attached: {len(photos) if photos else 0}\n\n"
             f"AI Triage:\n{ai_response}"
         )
-
         owner_message = Mail(
             from_email=from_email,
             to_emails=os.environ.get("OWNER_EMAIL"),
@@ -191,13 +200,11 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
         print(f"SendGrid error: {e.body}")
 
 
-# Serve the HTML form
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
 
 
-# Handle form submission
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.json
@@ -230,7 +237,6 @@ sign off as "Formosa Nova Maintenance Team"
 
     triage_response = message.content[0].text
 
-    # Send emails, Teams notification, and save to SharePoint
     send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
     send_teams_notification(tenant_name, unit, issue_type, urgency, description)
     save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, tenant_email, phone)
