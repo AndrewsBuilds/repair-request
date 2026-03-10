@@ -18,7 +18,6 @@ CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
 
 
 def get_graph_token():
-    print(f"[SharePoint] Getting token for tenant: {TENANT_ID}", flush=True)
     url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
     data = {
         "grant_type": "client_credentials",
@@ -27,9 +26,6 @@ def get_graph_token():
         "scope": "https://graph.microsoft.com/.default"
     }
     response = requests.post(url, data=data)
-    print(f"[SharePoint] Token response status: {response.status_code}", flush=True)
-    if response.status_code != 200:
-        print(f"[SharePoint] Token error: {response.text}", flush=True)
     response.raise_for_status()
     return response.json()["access_token"]
 
@@ -37,11 +33,7 @@ def get_graph_token():
 def get_sharepoint_site_id(token):
     url = "https://graph.microsoft.com/v1.0/sites/netorgft13553269.sharepoint.com:/sites/RentalPropertiesHub"
     headers = {"Authorization": f"Bearer {token}"}
-    print(f"[SharePoint] Getting site ID", flush=True)
     response = requests.get(url, headers=headers)
-    print(f"[SharePoint] Site ID response: {response.status_code}", flush=True)
-    if response.status_code != 200:
-        print(f"[SharePoint] Site ID error: {response.text}", flush=True)
     response.raise_for_status()
     return response.json()["id"]
 
@@ -49,20 +41,25 @@ def get_sharepoint_site_id(token):
 def get_list_id(token, site_id):
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists"
     headers = {"Authorization": f"Bearer {token}"}
-    print(f"[SharePoint] Getting lists", flush=True)
     response = requests.get(url, headers=headers)
-    print(f"[SharePoint] Lists response: {response.status_code}", flush=True)
-    if response.status_code != 200:
-        print(f"[SharePoint] Lists error: {response.text}", flush=True)
     response.raise_for_status()
-    lists = response.json().get("value", [])
-    list_names = [lst["name"] for lst in lists]
-    print(f"[SharePoint] Available lists: {list_names}", flush=True)
-    for lst in lists:
+    for lst in response.json().get("value", []):
         if lst["name"] == "Repair Requests":
-            print(f"[SharePoint] Found list: {lst['id']}", flush=True)
             return lst["id"]
-    raise Exception(f"List not found. Available: {list_names}")
+    raise Exception("Repair Requests list not found")
+
+
+def get_column_names(token, site_id, list_id):
+    """Fetch and print the internal column names from the SharePoint list."""
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/columns"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    columns = response.json().get("value", [])
+    print("[SharePoint] Column internal names:", flush=True)
+    for col in columns:
+        print(f"  Display: '{col.get('displayName')}' → Internal: '{col.get('name')}'", flush=True)
+    return {col.get("displayName"): col.get("name") for col in columns}
 
 
 def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, email, phone):
@@ -72,26 +69,31 @@ def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, emai
         site_id = get_sharepoint_site_id(token)
         list_id = get_list_id(token, site_id)
 
+        # Fetch actual column names on first run so we can map them correctly
+        col_map = get_column_names(token, site_id, list_id)
+
         url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
+
+        # Use internal names from col_map — fall back to display name if not found
         payload = {
             "fields": {
                 "Title": tenant_name,
-                "Unit": unit,
-                "Issue_x0020_Type": issue_type,
-                "Urgency": urgency,
-                "Description": description,
-                "Email": email,
-                "Phone": phone,
-                "Submission_x0020_Date": datetime.now(timezone.utc).isoformat(),
-                "Status": "New"
+                col_map.get("Unit", "Unit"): unit,
+                col_map.get("Issue Type", "Issue_x0020_Type"): issue_type,
+                col_map.get("Urgency", "Urgency"): urgency,
+                col_map.get("Description", "Description"): description,
+                col_map.get("Email", "Email"): email,
+                col_map.get("Phone", "Phone"): phone,
+                col_map.get("Submission Date", "Submission_x0020_Date"): datetime.now(timezone.utc).isoformat(),
+                col_map.get("Status", "Status"): "New"
             }
         }
 
-        print(f"[SharePoint] Posting item", flush=True)
+        print(f"[SharePoint] Posting with fields: {list(payload['fields'].keys())}", flush=True)
         response = requests.post(url, headers=headers, json=payload)
         print(f"[SharePoint] Post response: {response.status_code}", flush=True)
         if response.status_code not in (200, 201):
@@ -106,7 +108,6 @@ def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, emai
 def send_teams_notification(tenant_name, unit, issue_type, urgency, description):
     webhook_url = os.environ.get("TEAMS_WEBHOOK_URL")
     if not webhook_url:
-        print("Teams webhook URL not configured — skipping notification")
         return
 
     urgency_emoji = {
