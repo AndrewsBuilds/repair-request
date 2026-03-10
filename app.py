@@ -5,8 +5,6 @@ import anthropic
 import requests
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_from_directory
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -176,18 +174,32 @@ def send_teams_notification(tenant_name, unit, issue_type, urgency, description)
 
 
 def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, photos=None):
-    sg = SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
-    from_email = os.environ.get("SENDGRID_FROM_EMAIL")
-
+    print("[Email] Starting send_emails", flush=True)
     try:
-        tenant_message = Mail(
-            from_email=from_email,
-            to_emails=tenant_email,
-            subject=f"Repair Request Received — {issue_type}",
-            plain_text_content=ai_response
-        )
-        sg.send(tenant_message)
+        token = get_graph_token()
+        sender = os.environ.get("MAIL_SENDER", "repairs@theameizenteam.com")
+        owner_email = os.environ.get("OWNER_EMAIL")
+        url = f"https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
 
+        # --- Tenant confirmation email ---
+        tenant_payload = {
+            "message": {
+                "subject": f"Repair Request Received — {issue_type}",
+                "body": {"contentType": "Text", "content": ai_response},
+                "toRecipients": [{"emailAddress": {"address": tenant_email}}]
+            },
+            "saveToSentItems": "true"
+        }
+        r = requests.post(url, headers=headers, json=tenant_payload)
+        print(f"[Email] Tenant email response: {r.status_code}", flush=True)
+        if r.status_code not in (200, 202):
+            print(f"[Email] Tenant email error: {r.text}", flush=True)
+
+        # --- Owner notification email ---
         owner_body = (
             f"New repair request submitted:\n\n"
             f"Tenant: {tenant_name}\n"
@@ -196,27 +208,36 @@ def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, pho
             f"Photos attached: {len(photos) if photos else 0}\n\n"
             f"AI Triage:\n{ai_response}"
         )
-        owner_message = Mail(
-            from_email=from_email,
-            to_emails=os.environ.get("OWNER_EMAIL"),
-            subject=f"New Repair Request — {issue_type} ({urgency})",
-            plain_text_content=owner_body
-        )
 
+        owner_message = {
+            "subject": f"New Repair Request — {issue_type} ({urgency})",
+            "body": {"contentType": "Text", "content": owner_body},
+            "toRecipients": [{"emailAddress": {"address": owner_email}}]
+        }
+
+        # Attach photos if provided
         if photos:
-            for i, photo in enumerate(photos):
-                attachment = Attachment(
-                    FileContent(photo['data']),
-                    FileName(photo['filename'] or f"photo_{i+1}.jpg"),
-                    FileType(photo['type'] or 'image/jpeg'),
-                    Disposition('attachment')
-                )
-                owner_message.add_attachment(attachment)
+            owner_message["attachments"] = [
+                {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "name": photo.get("filename") or f"photo_{i+1}.jpg",
+                    "contentType": photo.get("type") or "image/jpeg",
+                    "contentBytes": photo.get("data")
+                }
+                for i, photo in enumerate(photos)
+            ]
 
-        sg.send(owner_message)
+        owner_payload = {
+            "message": owner_message,
+            "saveToSentItems": "true"
+        }
+        r = requests.post(url, headers=headers, json=owner_payload)
+        print(f"[Email] Owner email response: {r.status_code}", flush=True)
+        if r.status_code not in (200, 202):
+            print(f"[Email] Owner email error: {r.text}", flush=True)
 
     except Exception as e:
-        print(f"SendGrid error: {e.body}")
+        print(f"[Email] Exception: {str(e)}", flush=True)
 
 
 @app.route("/")
