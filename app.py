@@ -1,6 +1,5 @@
 # Formosa Nova - Repair Request Web App
 import os
-import sys
 import base64
 import anthropic
 import requests
@@ -15,6 +14,27 @@ client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 TENANT_ID     = os.environ.get("AZURE_TENANT_ID")
 CLIENT_ID     = os.environ.get("AZURE_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
+
+# Map form radio values to friendly display text for SharePoint
+ACCESS_MAP = {
+    "yes_alone":      "You may enter when I'm not home",
+    "yes_present":    "Please schedule when I'm present",
+    "emergency_only": "Entry for emergencies only"
+}
+
+# Hardcoded internal SharePoint column names (confirmed from logs)
+SHAREPOINT_COLUMNS = {
+    "Unit":             "Unit",
+    "Issue Type":       "IssueType",
+    "Urgency":          "Urgency",
+    "Description":      "Description",
+    "Email":            "Email",
+    "Phone":            "Phone",
+    "Submission Date":  "SubmissionDate",
+    "Status":           "Status",
+    "AI Triage Response": "AI_x0020_Triage_x0020_Response",
+    "Entry Authorization": "Entry_x0020_Authorization"
+}
 
 
 def get_graph_token():
@@ -50,27 +70,25 @@ def get_list_id(token, site_id):
 
 
 def get_column_names(token, site_id, list_id):
-    """Fetch and print the internal column names from the SharePoint list."""
+    """Fetch actual internal column names from SharePoint."""
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/columns"
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    columns = response.json().get("value", [])
-    print("[SharePoint] Column internal names:", flush=True)
-    for col in columns:
-        print(f"  Display: '{col.get('displayName')}' → Internal: '{col.get('name')}'", flush=True)
-    return {col.get("displayName"): col.get("name") for col in columns}
+    return {col.get("displayName"): col.get("name") for col in response.json().get("value", [])}
 
 
-def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, email, phone):
+def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description,
+                       email, phone, access, ai_response):
     print("[SharePoint] Starting save_to_sharepoint", flush=True)
     try:
         token = get_graph_token()
         site_id = get_sharepoint_site_id(token)
         list_id = get_list_id(token, site_id)
-
-        # Fetch actual column names on first run so we can map them correctly
         col_map = get_column_names(token, site_id, list_id)
+
+        # Translate raw form value to friendly display text
+        entry_auth = ACCESS_MAP.get(access, access)
 
         url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
         headers = {
@@ -78,22 +96,22 @@ def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, emai
             "Content-Type": "application/json"
         }
 
-        # Use internal names from col_map — fall back to display name if not found
         payload = {
             "fields": {
-                "Title": tenant_name,
-                col_map.get("Unit", "Unit"): unit,
-                col_map.get("Issue Type", "Issue_x0020_Type"): issue_type,
-                col_map.get("Urgency", "Urgency"): urgency,
+                "Title":                              tenant_name,
+                col_map.get("Unit", "Unit"):          unit,
+                col_map.get("Issue Type", "IssueType"): issue_type,
+                col_map.get("Urgency", "Urgency"):    urgency,
                 col_map.get("Description", "Description"): description,
-                col_map.get("Email", "Email"): email,
-                col_map.get("Phone", "Phone"): phone,
-                col_map.get("Submission Date", "Submission_x0020_Date"): datetime.now(timezone.utc).isoformat(),
-                col_map.get("Status", "Status"): "New"
+                col_map.get("Email", "Email"):        email,
+                col_map.get("Phone", "Phone"):        phone,
+                col_map.get("Submission Date", "SubmissionDate"): datetime.now(timezone.utc).isoformat(),
+                col_map.get("Status", "Status"):      "New",
+                col_map.get("Entry Authorization", "Entry_x0020_Authorization"): entry_auth,
+                col_map.get("AI Triage Response", "AI_x0020_Triage_x0020_Response"): ai_response
             }
         }
 
-        print(f"[SharePoint] Posting with fields: {list(payload['fields'].keys())}", flush=True)
         response = requests.post(url, headers=headers, json=payload)
         print(f"[SharePoint] Post response: {response.status_code}", flush=True)
         if response.status_code not in (200, 201):
@@ -218,6 +236,7 @@ def submit():
     tenant_email = data.get("email")
     phone        = data.get("phone", "Not provided")
     photos       = data.get("photos", [])
+    access       = data.get("access", "yes_alone")
 
     prompt = f"""
 You are a property management assistant for Formosa Nova.
@@ -240,13 +259,11 @@ sign off as "Formosa Nova Maintenance Team"
 
     send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
     send_teams_notification(tenant_name, unit, issue_type, urgency, description)
-    save_to_sharepoint(tenant_name, unit, issue_type, urgency, description, tenant_email, phone)
+    save_to_sharepoint(tenant_name, unit, issue_type, urgency, description,
+                       tenant_email, phone, access, triage_response)
 
     return jsonify({"triage": triage_response})
 
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-

@@ -584,6 +584,7 @@
       const urgency     = document.querySelector('input[name="urgency"]:checked')?.value;
       const description = document.getElementById('description').value.trim();
       const confirmed   = document.getElementById('confirm').checked;
+      const access      = document.querySelector('input[name="access"]:checked')?.value || 'yes_alone';
 
       if (!firstName || !lastName || !email || !address || !issueType || !description) {
         alert('Please fill in all required fields.'); return;
@@ -616,7 +617,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantName: firstName + ' ' + lastName,
-            unit: address, issueType, urgency, description, email, phone, photos
+            unit: address, issueType, urgency, description, email, phone, photos, access
           })
         });
 
