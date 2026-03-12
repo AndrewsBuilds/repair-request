@@ -5,9 +5,12 @@ import anthropic
 import requests
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 TENANT_ID     = os.environ.get("AZURE_TENANT_ID")
 CLIENT_ID     = os.environ.get("AZURE_CLIENT_ID")
@@ -18,20 +21,6 @@ ACCESS_MAP = {
     "yes_alone":      "You may enter when I'm not home",
     "yes_present":    "Please schedule when I'm present",
     "emergency_only": "Entry for emergencies only"
-}
-
-# Hardcoded internal SharePoint column names (confirmed from logs)
-SHAREPOINT_COLUMNS = {
-    "Unit":             "Unit",
-    "Issue Type":       "IssueType",
-    "Urgency":          "Urgency",
-    "Description":      "Description",
-    "Email":            "Email",
-    "Phone":            "Phone",
-    "Submission Date":  "SubmissionDate",
-    "Status":           "Status",
-    "AI Triage Response": "AI_x0020_Triage_x0020_Response",
-    "Entry Authorization": "Entry_x0020_Authorization"
 }
 
 
@@ -76,49 +65,57 @@ def get_column_names(token, site_id, list_id):
     return {col.get("displayName"): col.get("name") for col in response.json().get("value", [])}
 
 
-def save_to_sharepoint(tenant_name, unit, issue_type, urgency, description,
+# Module-level cache for static SharePoint identifiers (never change at runtime)
+_sp_site_id = None
+_sp_list_id = None
+_sp_col_map  = None
+
+
+def _load_sharepoint_ids(token):
+    global _sp_site_id, _sp_list_id, _sp_col_map
+    if _sp_site_id is None:
+        _sp_site_id = get_sharepoint_site_id(token)
+    if _sp_list_id is None:
+        _sp_list_id = get_list_id(token, _sp_site_id)
+    if _sp_col_map is None:
+        _sp_col_map = get_column_names(token, _sp_site_id, _sp_list_id)
+    return _sp_site_id, _sp_list_id, _sp_col_map
+
+
+def save_to_sharepoint(token, tenant_name, unit, issue_type, urgency, description,
                        email, phone, access, ai_response):
     print("[SharePoint] Starting save_to_sharepoint", flush=True)
-    try:
-        token = get_graph_token()
-        site_id = get_sharepoint_site_id(token)
-        list_id = get_list_id(token, site_id)
-        col_map = get_column_names(token, site_id, list_id)
+    site_id, list_id, col_map = _load_sharepoint_ids(token)
 
-        # Translate raw form value to friendly display text
-        entry_auth = ACCESS_MAP.get(access, access)
+    # Translate raw form value to friendly display text
+    entry_auth = ACCESS_MAP.get(access, access)
 
-        url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "fields": {
+            "Title":                              tenant_name,
+            col_map.get("Unit", "Unit"):          unit,
+            col_map.get("Issue Type", "IssueType"): issue_type,
+            col_map.get("Urgency", "Urgency"):    urgency,
+            col_map.get("Description", "Description"): description,
+            col_map.get("Email", "Email"):        email,
+            col_map.get("Phone", "Phone"):        phone,
+            col_map.get("Submission Date", "SubmissionDate"): datetime.now(timezone.utc).isoformat(),
+            col_map.get("Status", "Status"):      "New",
+            col_map.get("Entry Authorization", "Entry_x0020_Authorization"): entry_auth,
+            col_map.get("AI Triage Response", "AI_x0020_Triage_x0020_Response"): ai_response
         }
+    }
 
-        payload = {
-            "fields": {
-                "Title":                              tenant_name,
-                col_map.get("Unit", "Unit"):          unit,
-                col_map.get("Issue Type", "IssueType"): issue_type,
-                col_map.get("Urgency", "Urgency"):    urgency,
-                col_map.get("Description", "Description"): description,
-                col_map.get("Email", "Email"):        email,
-                col_map.get("Phone", "Phone"):        phone,
-                col_map.get("Submission Date", "SubmissionDate"): datetime.now(timezone.utc).isoformat(),
-                col_map.get("Status", "Status"):      "New",
-                col_map.get("Entry Authorization", "Entry_x0020_Authorization"): entry_auth,
-                col_map.get("AI Triage Response", "AI_x0020_Triage_x0020_Response"): ai_response
-            }
-        }
-
-        response = requests.post(url, headers=headers, json=payload)
-        print(f"[SharePoint] Post response: {response.status_code}", flush=True)
-        if response.status_code not in (200, 201):
-            print(f"[SharePoint] Post error: {response.text}", flush=True)
-        else:
-            print("[SharePoint] Record created successfully!", flush=True)
-
-    except Exception as e:
-        print(f"[SharePoint] Exception: {str(e)}", flush=True)
+    response = requests.post(url, headers=headers, json=payload)
+    print(f"[SharePoint] Post response: {response.status_code}", flush=True)
+    response.raise_for_status()
+    print("[SharePoint] Record created successfully!", flush=True)
 
 
 def send_teams_notification(tenant_name, unit, issue_type, urgency, description):
@@ -173,10 +170,9 @@ def send_teams_notification(tenant_name, unit, issue_type, urgency, description)
         print(f"Teams notification error: {e}")
 
 
-def send_emails(tenant_name, tenant_email, issue_type, urgency, ai_response, photos=None):
+def send_emails(token, tenant_name, tenant_email, issue_type, urgency, ai_response, photos=None):
     print("[Email] Starting send_emails", flush=True)
     try:
-        token = get_graph_token()
         sender = os.environ.get("MAIL_SENDER", "repairs@theameizenteam.com")
         owner_email = os.environ.get("OWNER_EMAIL")
         url = f"https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
@@ -247,46 +243,86 @@ def index():
     return send_from_directory(".", "index.html")
 
 
+VALID_ISSUE_TYPES = {"Plumbing", "Electrical", "HVAC", "Appliance", "Structural", "Pest", "Other"}
+VALID_URGENCY     = {"Urgent", "Standard", "Low"}
+VALID_ACCESS      = {"yes_alone", "yes_present", "emergency_only"}
+
+
+@app.errorhandler(429)
+def ratelimit_handler(_):
+    return jsonify({"error": "Too many submissions. Please wait a minute and try again."}), 429
+
+
 @app.route("/submit", methods=["POST"])
+@limiter.limit("5 per minute")
 def submit():
-    data = request.json
+    data = request.json or {}
 
-    tenant_name  = data.get("tenantName")
-    unit         = data.get("unit")
-    issue_type   = data.get("issueType")
-    urgency      = data.get("urgency")
-    description  = data.get("description")
-    tenant_email = data.get("email")
-    phone        = data.get("phone", "Not provided")
-    photos       = data.get("photos", [])
-    access       = data.get("access", "yes_alone")
+    tenant_name  = (data.get("tenantName") or "").strip()
+    unit         = (data.get("unit") or "").strip()
+    issue_type   = (data.get("issueType") or "").strip()
+    urgency      = (data.get("urgency") or "").strip()
+    description  = (data.get("description") or "").strip()
+    tenant_email = (data.get("email") or "").strip()
+    phone        = (data.get("phone") or "Not provided").strip()
+    photos       = data.get("photos") if isinstance(data.get("photos"), list) else []
+    access       = (data.get("access") or "yes_alone").strip()
 
-    prompt = f"""
-You are a property management assistant for Formosa Nova.
-A tenant has submitted the following repair request:
-Tenant: {tenant_name} / Unit: {unit} / Issue Type: {issue_type} / Urgency: {urgency} / Description: {description}
+    errors = {}
+    if not tenant_name:
+        errors["tenantName"] = "Required"
+    if not unit:
+        errors["unit"] = "Required"
+    if issue_type not in VALID_ISSUE_TYPES:
+        errors["issueType"] = f"Must be one of: {', '.join(sorted(VALID_ISSUE_TYPES))}"
+    if urgency not in VALID_URGENCY:
+        errors["urgency"] = f"Must be one of: {', '.join(sorted(VALID_URGENCY))}"
+    if not description:
+        errors["description"] = "Required"
+    if not tenant_email or "@" not in tenant_email:
+        errors["email"] = "Valid email required"
+    if access not in VALID_ACCESS:
+        errors["access"] = f"Must be one of: {', '.join(sorted(VALID_ACCESS))}"
 
-Write a short, warm, professional acknowledgment email BODY to the tenant.
-Rules: No subject line, no headers like "1." or "2.", no ** markdown, start with "Dear [name],",
-confirm receipt, mention issue type and urgency, follow up within 24 hours, close warmly,
-sign off as "Formosa Nova Maintenance Team"
-"""
+    photos = photos[:5]
+
+    if errors:
+        return jsonify({"errors": errors}), 400
 
     message = client.messages.create(
         model="claude-opus-4-6",
         max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
+        system=(
+            "You are a property management assistant for Formosa Nova. "
+            "Write a short, warm, professional acknowledgment email BODY to the tenant. "
+            "Rules: No subject line, no headers like \"1.\" or \"2.\", no ** markdown, "
+            "start with \"Dear [name],\", confirm receipt, mention issue type and urgency, "
+            "follow up within 24 hours, close warmly, sign off as \"Formosa Nova Maintenance Team\"."
+        ),
+        messages=[{"role": "user", "content": (
+            f"Tenant: {tenant_name}\n"
+            f"Unit: {unit}\n"
+            f"Issue Type: {issue_type}\n"
+            f"Urgency: {urgency}\n"
+            f"Description: {description}"
+        )}]
     )
 
     triage_response = message.content[0].text
 
-    send_emails(tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
+    token = get_graph_token()
+    try:
+        save_to_sharepoint(token, tenant_name, unit, issue_type, urgency, description,
+                           tenant_email, phone, access, triage_response)
+    except Exception as e:
+        print(f"[SharePoint] Fatal — submission not saved: {e}", flush=True)
+        return jsonify({"error": "Failed to save your request. Please try again."}), 500
+
+    send_emails(token, tenant_name, tenant_email, issue_type, urgency, triage_response, photos)
     send_teams_notification(tenant_name, unit, issue_type, urgency, description)
-    save_to_sharepoint(tenant_name, unit, issue_type, urgency, description,
-                       tenant_email, phone, access, triage_response)
 
     return jsonify({"triage": triage_response})
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

@@ -418,6 +418,7 @@
               </div>
             </label>
           </div>
+          <div class="input-hint" id="urgencyError"></div>
         </div>
 
         <div class="form-group">
@@ -430,6 +431,7 @@
           <div class="upload-area" onclick="document.getElementById('photoInput').click()">
             <div class="upload-icon">📷</div>
             <div class="upload-text"><strong>Click to upload photos</strong> or drag and drop</div>
+            <div class="upload-text" style="margin-top:4px;font-size:11px;">Up to 5 photos</div>
             <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotoSelect(this)" />
           </div>
           <div class="photo-preview" id="photoPreview"></div>
@@ -464,6 +466,7 @@
               </div>
             </label>
           </div>
+          <div class="input-hint" id="accessError"></div>
         </div>
 
         <div class="section-divider"></div>
@@ -548,14 +551,19 @@
       const count = document.getElementById('photoCount');
       preview.innerHTML = '';
       const files = Array.from(input.files);
-      files.slice(0, 5).forEach(file => {
+      const allowed = files.slice(0, 5);
+      allowed.forEach(file => {
         const img = document.createElement('img');
         img.className = 'photo-thumb';
         img.src = URL.createObjectURL(file);
         preview.appendChild(img);
       });
-      if (files.length > 0) {
-        count.textContent = files.length + ' photo' + (files.length > 1 ? 's' : '') + ' selected' + (files.length > 5 ? ' (showing first 5)' : '');
+      if (files.length > 5) {
+        count.textContent = `5 of ${files.length} photos selected (limit is 5)`;
+        count.style.color = 'var(--coral)';
+      } else if (files.length > 0) {
+        count.textContent = files.length + ' photo' + (files.length > 1 ? 's' : '') + ' selected';
+        count.style.color = '';
       }
     }
 
@@ -604,12 +612,14 @@
       spinner.style.display = 'block';
       btnText.textContent = 'Submitting...';
 
-      // Convert photos to base64
+      // Convert photos to base64 (max 5)
       const photoInput = document.getElementById('photoInput');
       let photos = [];
       if (photoInput.files.length > 0) {
-        photos = await Promise.all(Array.from(photoInput.files).map(fileToBase64));
+        photos = await Promise.all(Array.from(photoInput.files).slice(0, 5).map(fileToBase64));
       }
+
+      clearServerErrors();
 
       try {
         const res = await fetch('/submit', {
@@ -622,6 +632,19 @@
         });
 
         const data = await res.json();
+
+        if (!res.ok) {
+          if (data.errors && Object.keys(data.errors).length > 0) {
+            showServerErrors(data.errors);
+          } else {
+            alert(data.error || 'Submission failed. Please try again.');
+          }
+          btn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Submit Repair Request';
+          return;
+        }
+
         document.getElementById('progressBar').style.width = '100%';
         document.getElementById('triageResult').textContent = data.triage;
         document.getElementById('formSection').style.display = 'none';
@@ -635,7 +658,56 @@
       }
     }
 
+    // Maps server error keys to { inputId, hintId }
+    const SERVER_FIELD_MAP = {
+      tenantName:  { inputId: 'firstName',    hintId: null },
+      unit:        { inputId: 'address',       hintId: null },
+      issueType:   { inputId: 'issueType',     hintId: null },
+      description: { inputId: 'description',   hintId: null },
+      email:       { inputId: 'email',         hintId: null },
+      urgency:     { inputId: null,            hintId: 'urgencyError' },
+      access:      { inputId: null,            hintId: 'accessError' },
+    };
+
+    function showServerErrors(errors) {
+      Object.entries(errors).forEach(([key, msg]) => {
+        const mapping = SERVER_FIELD_MAP[key];
+        if (!mapping) return;
+        if (mapping.inputId) {
+          const el = document.getElementById(mapping.inputId);
+          if (el) el.classList.add('input-error');
+          // Insert a hint span after the input if one doesn't exist
+          const hintId = mapping.inputId + 'ServerHint';
+          let hint = document.getElementById(hintId);
+          if (!hint) {
+            hint = document.createElement('div');
+            hint.id = hintId;
+            hint.className = 'input-hint error';
+            el.insertAdjacentElement('afterend', hint);
+          }
+          hint.textContent = msg;
+        }
+        if (mapping.hintId) {
+          const hint = document.getElementById(mapping.hintId);
+          if (hint) { hint.textContent = msg; hint.classList.add('error'); }
+        }
+      });
+      // Scroll first errored field into view
+      const firstError = document.querySelector('.input-error');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function clearServerErrors() {
+      document.querySelectorAll('[id$="ServerHint"]').forEach(el => el.remove());
+      document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+      ['urgencyError', 'accessError'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ''; el.classList.remove('error'); }
+      });
+    }
+
     function resetForm() {
+      clearServerErrors();
       document.getElementById('formSection').style.display = 'block';
       document.getElementById('successScreen').style.display = 'none';
       document.getElementById('progressBar').style.width = '0%';
